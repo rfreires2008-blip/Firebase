@@ -1,249 +1,167 @@
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset=utf-8 />
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email/Password Authentication Example</title>
-
-  <!-- Material Design Theming -->
-  <link rel="stylesheet" href="https://code.getmdl.io/1.1.3/material.orange-indigo.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <script defer src="https://code.getmdl.io/1.1.3/material.min.js"></script>
-
+  <title>Firebase Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ccc;
+    }
+    .error {
+      color: red;
+      margin: 10px 0;
+    }
+  </style>
+  
   <!-- Firebase -->
-
-
-<script src="https://www.gstatic.com/firebasejs/3.7.2/firebase.js"></script>
-<script>
-  // Initialize Firebase
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   
-  // Get the Firebase configuration from App Inventor via the WebViewer.WebViewString property
-  var config = JSON.parse(window.AppInventor.getWebViewString());
-  
-  firebase.initializeApp(config);
-</script>
-
-  <script type="text/javascript">
+  <script>
+    // Esta variável será preenchida pelo App Inventor
+    var firebaseConfig = {};
+    
+    // Função para comunicar com App Inventor
     function tellAppInventor(message) {
-        try {
-            window.AppInventor.setWebViewString( message );
-        } catch(e) {
-            console.log("App Inventor Communication Error",e)
-        }
+      try {
+        window.AppInventor.setWebViewString(message);
+      } catch(e) {
+        console.log("Error:", e);
+      }
     }
     
-    /**
-     * Handles the sign in button press.
-     */
-    function toggleSignIn() {
-      if (firebase.auth().currentUser) {
-        // [START signout]
-        firebase.auth().signOut();
-        // [END signout]
-      } else {
-        var email = document.getElementById('email').value;
-        var password = document.getElementById('password').value;
-        if (email.length < 4) {
-          tellAppInventor('Please enter an email address.');
-          return;
+    // Inicializar Firebase
+    function initFirebase() {
+      try {
+        // Tenta obter configuração do App Inventor
+        var configString = window.AppInventor.getWebViewString();
+        if (configString && configString !== "") {
+          firebaseConfig = JSON.parse(configString);
         }
-        if (password.length < 4) {
-          tellAppInventor('Please enter a password.');
-          return;
-        }
-        // Sign in with email and pass.
-        // [START authwithemail]
-        firebase.auth().signInWithEmailAndPassword(email, password).catch(function(error) {
-          // Handle Errors here.
-          var errorCode = error.code;
-          var errorMessage = error.message;
-          // [START_EXCLUDE]
-          if (errorCode === 'auth/wrong-password') {
-            tellAppInventor('Wrong password.');
-          } else {
-            tellAppInventor(errorMessage);
-          }
-          console.log(error);
-          document.getElementById('quickstart-sign-in').disabled = false;
-          // [END_EXCLUDE]
-        });
-        // [END authwithemail]
+      } catch(e) {
+        console.log("Erro ao ler config:", e);
       }
-      document.getElementById('quickstart-sign-in').disabled = true;
+      
+      // Se não veio do App Inventor, usa valores padrão
+      if (!firebaseConfig.apiKey) {
+        firebaseConfig = {
+          apiKey: "AIzaSyAP_6ouhLkPs5P_L5To3R1x7WCQf0A-0-Y",
+          authDomain: "alarme-residencial-rl-eng.firebaseapp.com",
+          databaseURL: "https://alarme-residencial-rl-eng-default-rtdb.firebaseio.com",
+          projectId: "alarme-residencial-rl-eng"
+        };
+      }
+      
+      // Inicializa Firebase
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      
+      // Habilita o botão Sign In
+      document.getElementById('signin-btn').disabled = false;
+      tellAppInventor("Firebase OK");
     }
-    /**
-     * Handles the sign up button press.
-     */
-    function handleSignUp() {
+    
+    // Função de Login
+    function signIn() {
       var email = document.getElementById('email').value;
       var password = document.getElementById('password').value;
-      if (email.length < 4) {
-        tellAppInventor('Please enter an email address.');
+      
+      if (email.length < 3) {
+        tellAppInventor("Digite um email válido");
         return;
       }
       if (password.length < 4) {
-        tellAppInventor('Please enter a password of 4 or more characters.');
+        tellAppInventor("Senha deve ter 4+ caracteres");
         return;
       }
-      // Sign in with email and pass.
-      // [START createwithemail]
-      firebase.auth().createUserWithEmailAndPassword(email, password).catch(function(error) {
-        // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
-        // [START_EXCLUDE]
-        if (errorCode == 'auth/weak-password') {
-          tellAppInventor('The password is too weak.');
-        } else {
-          tellAppInventor(errorMessage);
-        }
-        console.log(error);
-        // [END_EXCLUDE]
-      });
-      // [END createwithemail]
+      
+      document.getElementById('signin-btn').disabled = true;
+      document.getElementById('signin-btn').innerText = "Aguarde...";
+      
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(function(userCredential) {
+          var user = userCredential.user;
+          tellAppInventor(user.uid + "," + user.email + "," + (user.displayName || "") + "," + (user.photoURL || ""));
+          document.getElementById('signin-btn').innerText = "OK!";
+        })
+        .catch(function(error) {
+          tellAppInventor("Erro: " + error.message);
+          document.getElementById('signin-btn').disabled = false;
+          document.getElementById('signin-btn').innerText = "Sign In";
+        });
     }
-    /**
-     * Sends an email verification to the user.
-     */
-    function sendEmailVerification() {
-      // [START sendemailverification]
-      firebase.auth().currentUser.sendEmailVerification().then(function() {
-        // Email Verification sent!
-        // [START_EXCLUDE]
-        tellAppInventor('Email Verification Sent!');
-        // [END_EXCLUDE]
-      });
-      // [END sendemailverification]
-    }
-    function sendPasswordReset() {
+    
+    function signUp() {
       var email = document.getElementById('email').value;
-      // [START sendpasswordemail]
-      firebase.auth().sendPasswordResetEmail(email).then(function() {
-        // Password Reset Email Sent!
-        // [START_EXCLUDE]
-        tellAppInventor('Password Reset Email Sent!');
-        // [END_EXCLUDE]
-      }).catch(function(error) {
-        // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
-        // [START_EXCLUDE]
-        if (errorCode == 'auth/invalid-email') {
-          tellAppInventor(errorMessage);
-        } else if (errorCode == 'auth/user-not-found') {
-          tellAppInventor(errorMessage);
-        }
-        console.log(error);
-        // [END_EXCLUDE]
-      });
-      // [END sendpasswordemail];
+      var password = document.getElementById('password').value;
+      
+      if (email.length < 3) {
+        tellAppInventor("Digite um email válido");
+        return;
+      }
+      if (password.length < 6) {
+        tellAppInventor("Senha deve ter 6+ caracteres");
+        return;
+      }
+      
+      firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then(function() {
+          tellAppInventor("Conta criada! Faça login.");
+        })
+        .catch(function(error) {
+          tellAppInventor("Erro: " + error.message);
+        });
     }
-    /**
-     * initApp handles setting up UI event listeners and registering Firebase auth listeners:
-     *  - firebase.auth().onAuthStateChanged: This listener is called when the user is signed in or
-     *    out, and that is where we update the UI.
-     */
-    function initApp() {
-      // Listening for auth state changes.
-      // [START authstatelistener]
-      firebase.auth().onAuthStateChanged(function(user) {
-        // [START_EXCLUDE silent]
-        document.getElementById('quickstart-verify-email').disabled = true;
-        // [END_EXCLUDE]
-        if (user) {
-          // User is signed in.
-          var displayName = user.displayName;
-          var email = user.email;
-          var emailVerified = user.emailVerified;
-          var photoURL = user.photoURL;
-          var isAnonymous = user.isAnonymous;
-          var uid = user.uid;
-          var providerData = user.providerData;
-
-          if (emailVerified && !isAnonymous) {
-                tellAppInventor( uid + ',' + email + ',' + displayName + ',' + photoURL );
-            } else if (!emailVerified) {
-                tellAppInventor( 'Please click the Send Email Verification button to confirm your account.' );
-            }
-          
-          // [START_EXCLUDE]
-//          document.getElementById('quickstart-sign-in-status').textContent = 'Signed in';
-//          document.getElementById('quickstart-sign-in').textContent = 'Sign out';
-//          document.getElementById('quickstart-account-details').textContent = JSON.stringify(user, null, '  ');
-          if (!emailVerified) {
-            document.getElementById('quickstart-verify-email').disabled = false;
-          }
-          // [END_EXCLUDE]
-        } else {
-          // User is signed out.
-          // [START_EXCLUDE]
-//          document.getElementById('quickstart-sign-in-status').textContent = 'Signed out';
-//          document.getElementById('quickstart-sign-in').textContent = 'Sign in';
-//          document.getElementById('quickstart-account-details').textContent = 'null';
-          // [END_EXCLUDE]
-        }
-        // [START_EXCLUDE silent]
-        document.getElementById('quickstart-sign-in').disabled = false;
-        // [END_EXCLUDE]
-      });
-      // [END authstatelistener]
-      document.getElementById('quickstart-sign-in').addEventListener('click', toggleSignIn, false);
-      document.getElementById('quickstart-sign-up').addEventListener('click', handleSignUp, false);
-      document.getElementById('quickstart-verify-email').addEventListener('click', sendEmailVerification, false);
-      document.getElementById('quickstart-password-reset').addEventListener('click', sendPasswordReset, false);
-    }
+    
+    // Carregar página
     window.onload = function() {
-      initApp();
+      initFirebase();
+      document.getElementById('signin-btn').onclick = signIn;
+      document.getElementById('signup-btn').onclick = signUp;
     };
   </script>
 </head>
 <body>
-<div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-header">
-
-  <!-- Header section containing title 
-  <header class="mdl-layout__header mdl-color-text--white mdl-color--light-blue-700">
-    <div class="mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-grid">
-      <div class="mdl-layout__header-row mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-cell--8-col-desktop">
-        <a href="/explore/"><h3>Firebase Authentication</h3></a>
-      </div>
-    </div>
-  </header>
-  -->
-
-  <main class="mdl-layout__content mdl-color--grey-100">
-    <div class="mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-grid">
-
-      <!-- Container for the demo -->
-      <div class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-cell--12-col-desktop">
-        <div class="mdl-card__title mdl-color--light-blue-600 mdl-color-text--white">
-          <h2 class="mdl-card__title-text">Sign In or Sign Up</h2>
-        </div>
-        <div class="mdl-card__supporting-text mdl-color-text--grey-600">
-          <p>Enter an email and password below and either sign in to an existing account or sign up</p>
-
-          <input class="mdl-textfield__input" style="display:inline;width:auto;" type="text" id="email" name="email" placeholder="Email"/>
-          <p/><p/>
-          <input class="mdl-textfield__input" style="display:inline;width:auto;" type="password" id="password" name="password" placeholder="Password"/>
-          <p/>
-          <button disabled class="mdl-button mdl-js-button mdl-button--raised" id="quickstart-sign-in" name="signin">Sign In</button>
-             
-          <button class="mdl-button mdl-js-button mdl-button--raised" id="quickstart-sign-up" name="signup">Sign Up</button>
-          <p/>
-          <button class="mdl-button mdl-js-button mdl-button--raised" disabled id="quickstart-verify-email" name="verify-email">Send Email Verification</button>
-          <p/>
-          <button class="mdl-button mdl-js-button mdl-button--raised" id="quickstart-password-reset" name="verify-email">Send Password Reset Email</button>
-          <p/>
-
-          <!-- Container where we'll display the user details -->
-          <div class="quickstart-user-details-container" style="display:none">
-            Sign-in status: <span id="quickstart-sign-in-status">Unknown</span>
-            <div>Authorization <code>currentUser</code> object value:</div>
-            <pre><code id="quickstart-account-details">null</code></pre>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </main>
-</div>
+  <div class="container">
+    <h2>🔐 Alarme RL Eng</h2>
+    <input type="email" id="email" placeholder="Email" value="alarme@rlengenharia.com">
+    <input type="password" id="password" placeholder="Senha" value="alarme123">
+    <button id="signin-btn" disabled>Sign In</button>
+    <button id="signup-btn">Sign Up</button>
+  </div>
 </body>
 </html>
